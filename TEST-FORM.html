@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Ejemplo – Selección de Programas v7</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Bootstrap para maquetar rápido (opcional) -->
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css"
+  >
+
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f5f5;
+    }
+
+    .page-wrapper {
+      padding: 24px 12px 80px;
+    }
+
+    .titulo-pagina {
+      margin-bottom: 24px;
+    }
+
+    /* Layout principal */
+    @media (min-width: 992px) {
+      .layout-col-form {
+        border-right: 1px solid #e2e2e2;
+      }
+      .layout-col-grid {
+        padding-left: 24px;
+      }
+    }
+
+    /* Tarjeta de programa */
+    .card-programas-nuevo {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #ffffff;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+      cursor: pointer;
+    }
+
+    .card-programas-nuevo:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
+    }
+
+    .card-programas-nuevo .card-img {
+      width: 100%;
+      height: 120px;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+
+    .card-programas-nuevo-buscador-content {
+      padding: 10px 12px 8px;
+      flex-grow: 1;
+    }
+
+    .tipo-programa-buscador {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 2px;
+      color: #777777;
+    }
+
+    .nombre-programa-buscador {
+      font-size: 0.9rem;
+      margin: 0;
+      color: #222222;
+    }
+
+    .overlay-buscador {
+      padding: 10px 12px;
+      background-color: #006837;
+      color: #ffffff;
+      font-size: 0.75rem;
+    }
+
+    .overlay-buscador b.fa {
+      font-weight: 700;
+    }
+
+    /* Check de selección */
+    .program-select-toggle {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      z-index: 5;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+    }
+
+    .program-select-toggle input[type="checkbox"] {
+      display: none;
+    }
+
+    .program-select-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      background: #ffffff;
+      border: 2px solid #006837;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+      user-select: none;
+      transition: background 0.12s ease, color 0.12s ease, transform 0.12s ease;
+    }
+
+    .program-select-pill::before {
+      content: "";
+      font-size: 16px;
+      font-weight: 700;
+      color: #006837;
+    }
+
+    .card-programas-nuevo.selected .program-select-pill {
+      background: #006837;
+      transform: scale(1.05);
+    }
+
+    .card-programas-nuevo.selected .program-select-pill::before {
+      content: "✓";
+      color: #ffffff;
+    }
+
+    .card-programas-nuevo.selected {
+      box-shadow: 0 0 0 2px #006837, 0 4px 14px rgba(0, 0, 0, 0.18);
+    }
+
+    /* Form selección – compartido mobile / desktop */
+    .selection-form {
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+      padding: 12px 14px 16px;
+      font-size: 0.9rem;
+      border-top: 4px solid #006837;
+    }
+
+    .selection-form-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .selection-form-title {
+      font-weight: 700;
+      font-size: 0.95rem;
+      margin: 0;
+    }
+
+    .badge-count {
+      display: inline-block;
+      min-width: 20px;
+      padding: 0 6px;
+      border-radius: 999px;
+      background: #006837;
+      color: #ffffff;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .selection-form-subtitle {
+      font-size: 0.75rem;
+      margin-top: 4px;
+      margin-bottom: 6px;
+      color: #555555;
+    }
+
+    #selected-programs-list-desktop,
+    #selected-programs-list-mobile {
+      margin: 6px 0 10px;
+      padding-left: 18px;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+
+    #selected-programs-list-desktop li,
+    #selected-programs-list-mobile li {
+      margin-bottom: 3px;
+    }
+
+    .selection-form-body {
+      margin-top: 6px;
+    }
+
+    /* Desktop: formulario a la izquierda, sticky */
+    @media (min-width: 992px) {
+      .selection-form-wrapper-desktop {
+        position: sticky;
+        top: 90px;
+      }
+    }
+
+    /* Mobile: bottom sheet con barra compacta + panel desplegable */
+    @media (max-width: 991.98px) {
+      .selection-form-wrapper-desktop {
+        display: none;
+      }
+
+      .selection-form-mobile {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 1050;
+        padding: 0 8px 8px;
+      }
+
+      .selection-form {
+        max-height: 80vh;
+        overflow-y: auto;
+        border-radius: 14px 14px 10px 10px;
+        transform: translateY(calc(100% - 52px)); /* solo visible header (~52px) */
+        transition: transform 0.25s ease;
+      }
+
+      .selection-form.open {
+        transform: translateY(0);
+      }
+
+      .selection-form-header {
+        cursor: pointer;
+        padding-bottom: 4px;
+        border-bottom: 1px solid #e5e5e5;
+      }
+
+      .selection-form-header-main {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .selection-form-header-label {
+        font-weight: 600;
+        font-size: 0.9rem;
+      }
+
+      .selection-form-header-right {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .selection-form-arrow {
+        font-size: 0.75rem;
+        color: #444444;
+      }
+
+      .selection-form-subtitle {
+        margin-top: 6px;
+        margin-bottom: 4px;
+      }
+
+      /* Aumentamos padding-bottom para que la grilla no quede tapada */
+      .page-wrapper {
+        padding-bottom: 140px;
+      }
+    }
+
+    /* Desktop: ocultar contenedor mobile */
+    @media (min-width: 992px) {
+      .selection-form-mobile {
+        display: none !important;
+      }
+    }
+
+    /* Ajustes grilla */
+    @media (max-width: 991.98px) {
+      .layout-col-grid .col-6 {
+        padding-left: 6px;
+        padding-right: 6px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page-wrapper">
+    <div class="container-fluid">
+      <div class="titulo-pagina">
+        <h3 class="mb-1">Buscador de programas – Ejemplo v7</h3>
+        <p class="text-muted mb-0">
+          Haz clic en cualquier parte del card para seleccionar uno o varios programas.
+        </p>
+      </div>
+
+      <div class="row">
+        <!-- Columna izquierda: formulario (escritorio) -->
+        <div class="col-lg-3 layout-col-form d-none d-lg-block">
+          <div class="selection-form-wrapper-desktop">
+            <div id="selection-form-desktop" class="selection-form">
+              <div class="selection-form-header">
+                <h6 class="selection-form-title mb-0">
+                  Programas seleccionados
+                </h6>
+                <span id="badge-count-desktop" class="badge-count">0</span>
+              </div>
+              <div class="selection-form-subtitle">
+                Selecciona programas en la grilla y luego completa tus datos para enviar tu consulta.
+              </div>
+
+              <ul id="selected-programs-list-desktop" class="small mb-2"></ul>
+
+              <div class="selection-form-body">
+                <form id="multi-program-form-desktop" method="post" action="#">
+                  <input type="hidden" name="programas_seleccionados" id="programas_seleccionados_desktop">
+
+                  <div class="form-group mb-2">
+                    <label for="mp_nombre_desktop" class="small mb-1">Nombre</label>
+                    <input type="text" id="mp_nombre_desktop" name="nombre"
+                           class="form-control form-control-sm" required>
+                  </div>
+
+                  <div class="form-group mb-2">
+                    <label for="mp_correo_desktop" class="small mb-1">Correo</label>
+                    <input type="email" id="mp_correo_desktop" name="correo"
+                           class="form-control form-control-sm" required>
+                  </div>
+
+                  <div class="form-group mb-2">
+                    <label for="mp_telefono_desktop" class="small mb-1">Teléfono</label>
+                    <input type="tel" id="mp_telefono_desktop" name="telefono"
+                           class="form-control form-control-sm">
+                  </div>
+
+                  <div class="form-group form-check mb-3">
+                    <input type="checkbox" class="form-check-input" id="mp_privacidad_desktop" required>
+                    <label class="form-check-label small" for="mp_privacidad_desktop">
+                      Acepto la
+                      <a href="https://www.uejecutivos.cl/politicas_de_privacidad.html"
+                         target="_blank" rel="noopener">
+                        Política de Privacidad
+                      </a>.
+                    </label>
+                  </div>
+
+                  <button type="submit"
+                          id="mp_submit_desktop"
+                          class="btn btn-primary btn-sm btn-block"
+                          disabled>
+                    Enviar consulta
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Columna derecha: grilla de programas -->
+        <div class="col-lg-9 layout-col-grid">
+          <div class="row">
+            <!-- Programa 1 -->
+            <div class="col-md-3 col-6 mb-3">
+              <div class="card-programas-nuevo card-buscador border-0"
+                   data-program-id="1578"
+                   data-program-name="Diploma en Planificación, Control y Gestión">
+
+                <label class="program-select-toggle">
+                  <input type="checkbox" class="program-checkbox">
+                  <span class="program-select-pill"></span>
+                </label>
+
+                <img class="card-img flex-grow-0"
+                     src="https://picsum.photos/400/200?random=1"
+                     alt="Programa 1">
+
+                <div class="card-programas-nuevo-buscador-content">
+                  <p class="tipo-programa-buscador">Diploma en</p>
+                  <p class="nombre-programa-buscador">
+                    <b>Planificación, Control y Gestión</b>
+                  </p>
+                </div>
+
+                <div class="overlay-buscador">
+                  <p class="mb-0">
+                    <b class="fa fa-calendar">&nbsp;</b>10 de marzo 2026<br>
+                    <b class="fa fa-graduation-cap">&nbsp;</b>100% Online<br>
+                    <b class="fa fa-clock-o">&nbsp;</b>5 meses
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Programa 2 -->
+            <div class="col-md-3 col-6 mb-3">
+              <div class="card-programas-nuevo card-buscador border-0"
+                   data-program-id="1601"
+                   data-program-name="Diploma en Control de Gestión">
+
+                <label class="program-select-toggle">
+                  <input type="checkbox" class="program-checkbox">
+                  <span class="program-select-pill"></span>
+                </label>
+
+                <img class="card-img flex-grow-0"
+                     src="https://picsum.photos/400/200?random=2"
+                     alt="Programa 2">
+
+                <div class="card-programas-nuevo-buscador-content">
+                  <p class="tipo-programa-buscador">Diploma en</p>
+                  <p class="nombre-programa-buscador">
+                    <b>Control de Gestión</b>
+                  </p>
+                </div>
+
+                <div class="overlay-buscador">
+                  <p class="mb-0">
+                    <b class="fa fa-calendar">&nbsp;</b>15 de abril 2026<br>
+                    <b class="fa fa-graduation-cap">&nbsp;</b>Presencial<br>
+                    <b class="fa fa-clock-o">&nbsp;</b>4 meses
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Programa 3 -->
+            <div class="col-md-3 col-6 mb-3">
+              <div class="card-programas-nuevo card-buscador border-0"
+                   data-program-id="1620"
+                   data-program-name="Curso en Herramientas de Análisis de Datos">
+
+                <label class="program-select-toggle">
+                  <input type="checkbox" class="program-checkbox">
+                  <span class="program-select-pill"></span>
+                </label>
+
+                <img class="card-img flex-grow-0"
+                     src="https://picsum.photos/400/200?random=3"
+                     alt="Programa 3">
+
+                <div class="card-programas-nuevo-buscador-content">
+                  <p class="tipo-programa-buscador">Curso</p>
+                  <p class="nombre-programa-buscador">
+                    <b>Herramientas de Análisis de Datos</b>
+                  </p>
+                </div>
+
+                <div class="overlay-buscador">
+                  <p class="mb-0">
+                    <b class="fa fa-calendar">&nbsp;</b>07 de mayo 2026<br>
+                    <b class="fa fa-graduation-cap">&nbsp;</b>Streaming<br>
+                    <b class="fa fa-clock-o">&nbsp;</b>6 sesiones
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Programa 4 -->
+            <div class="col-md-3 col-6 mb-3">
+              <div class="card-programas-nuevo card-buscador border-0"
+                   data-program-id="1655"
+                   data-program-name="Diploma en Gestión Estratégica">
+
+                <label class="program-select-toggle">
+                  <input type="checkbox" class="program-checkbox">
+                  <span class="program-select-pill"></span>
+                </label>
+
+                <img class="card-img flex-grow-0"
+                     src="https://picsum.photos/400/200?random=4"
+                     alt="Programa 4">
+
+                <div class="card-programas-nuevo-buscador-content">
+                  <p class="tipo-programa-buscador">Diploma en</p>
+                  <p class="nombre-programa-buscador">
+                    <b>Gestión Estratégica</b>
+                  </p>
+                </div>
+
+                <div class="overlay-buscador">
+                  <p class="mb-0">
+                    <b class="fa fa-calendar">&nbsp;</b>20 de mayo 2026<br>
+                    <b class="fa fa-graduation-cap">&nbsp;</b>Online - sincrónico<br>
+                    <b class="fa fa-clock-o">&nbsp;</b>5 meses
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Programa 5 -->
+            <div class="col-md-3 col-6 mb-3">
+              <div class="card-programas-nuevo card-buscador border-0"
+                   data-program-id="1701"
+                   data-program-name="Curso en Finanzas para No Financieros">
+
+                <label class="program-select-toggle">
+                  <input type="checkbox" class="program-checkbox">
+                  <span class="program-select-pill"></span>
+                </label>
+
+                <img class="card-img flex-grow-0"
+                     src="https://picsum.photos/400/200?random=5"
+                     alt="Programa 5">
+
+                <div class="card-programas-nuevo-buscador-content">
+                  <p class="tipo-programa-buscador">Curso</p>
+                  <p class="nombre-programa-buscador">
+                    <b>Finanzas para No Financieros</b>
+                  </p>
+                </div>
+
+                <div class="overlay-buscador">
+                  <p class="mb-0">
+                    <b class="fa fa-calendar">&nbsp;</b>03 de junio 2026<br>
+                    <b class="fa fa-graduation-cap">&nbsp;</b>Online<br>
+                    <b class="fa fa-clock-o">&nbsp;</b>4 sesiones
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Programa 6 -->
+            <div class="col-md-3 col-6 mb-3">
+              <div class="card-programas-nuevo card-buscador border-0"
+                   data-program-id="1720"
+                   data-program-name="Diploma en Marketing Digital">
+
+                <label class="program-select-toggle">
+                  <input type="checkbox" class="program-checkbox">
+                  <span class="program-select-pill"></span>
+                </label>
+
+                <img class="card-img flex-grow-0"
+                     src="https://picsum.photos/400/200?random=6"
+                     alt="Programa 6">
+
+                <div class="card-programas-nuevo-buscador-content">
+                  <p class="tipo-programa-buscador">Diploma en</p>
+                  <p class="nombre-programa-buscador">
+                    <b>Marketing Digital</b>
+                  </p>
+                </div>
+
+                <div class="overlay-buscador">
+                  <p class="mb-0">
+                    <b class="fa fa-calendar">&nbsp;</b>10 de julio 2026<br>
+                    <b class="fa fa-graduation-cap">&nbsp;</b>Streaming<br>
+                    <b class="fa fa-clock-o">&nbsp;</b>6 meses
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Programa 7 -->
+            <div class="col-md-3 col-6 mb-3">
+              <div class="card-programas-nuevo card-buscador border-0"
+                   data-program-id="1750"
+                   data-program-name="Curso en Excel Avanzado">
+
+                <label class="program-select-toggle">
+                  <input type="checkbox" class="program-checkbox">
+                  <span class="program-select-pill"></span>
+                </label>
+
+                <img class="card-img flex-grow-0"
+                     src="https://picsum.photos/400/200?random=7"
+                     alt="Programa 7">
+
+                <div class="card-programas-nuevo-buscador-content">
+                  <p class="tipo-programa-buscador">Curso</p>
+                  <p class="nombre-programa-buscador">
+                    <b>Excel Avanzado</b>
+                  </p>
+                </div>
+
+                <div class="overlay-buscador">
+                  <p class="mb-0">
+                    <b class="fa fa-calendar">&nbsp;</b>22 de agosto 2026<br>
+                    <b class="fa fa-graduation-cap">&nbsp;</b>Presencial<br>
+                    <b class="fa fa-clock-o">&nbsp;</b>5 sesiones
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Programa 8 -->
+            <div class="col-md-3 col-6 mb-3">
+              <div class="card-programas-nuevo card-buscador border-0"
+                   data-program-id="1800"
+                   data-program-name="Diploma en People Analytics">
+
+                <label class="program-select-toggle">
+                  <input type="checkbox" class="program-checkbox">
+                  <span class="program-select-pill"></span>
+                </label>
+
+                <img class="card-img flex-grow-0"
+                     src="https://picsum.photos/400/200?random=8"
+                     alt="Programa 8">
+
+                <div class="card-programas-nuevo-buscador-content">
+                  <p class="tipo-programa-buscador">Diploma en</p>
+                  <p class="nombre-programa-buscador">
+                    <b>People Analytics</b>
+                  </p>
+                </div>
+
+                <div class="overlay-buscador">
+                  <p class="mb-0">
+                    <b class="fa fa-calendar">&nbsp;</b>05 de septiembre 2026<br>
+                    <b class="fa fa-graduation-cap">&nbsp;</b>Online<br>
+                    <b class="fa fa-clock-o">&nbsp;</b>5 meses
+                  </p>
+                </div>
+              </div>
+            </div>
+
+          </div> <!-- /row programas -->
+        </div> <!-- /col grid -->
+      </div> <!-- /row layout -->
+    </div> <!-- /container-fluid -->
+  </div> <!-- /page-wrapper -->
+
+  <!-- Form mobile: barra compacta + panel desplegable -->
+  <div class="selection-form-mobile">
+    <div id="selection-form-mobile-inner" class="selection-form">
+      <div class="selection-form-header" id="selection-form-mobile-header">
+        <div class="selection-form-header-main">
+          <span class="selection-form-header-label">Enviar consulta</span>
+        </div>
+        <div class="selection-form-header-right">
+          <span id="badge-count-mobile" class="badge-count">0</span>
+          <span id="selection-form-arrow" class="selection-form-arrow">▲</span>
+        </div>
+      </div>
+
+      <div class="selection-form-subtitle">
+        Toca para desplegar el formulario y enviar tu consulta por los programas seleccionados.
+      </div>
+
+      <ul id="selected-programs-list-mobile" class="small mb-2"></ul>
+
+      <div class="selection-form-body">
+        <form id="multi-program-form-mobile" method="post" action="#">
+          <input type="hidden" name="programas_seleccionados" id="programas_seleccionados_mobile">
+
+          <div class="form-group mb-2">
+            <label for="mp_nombre_mobile" class="small mb-1">Nombre</label>
+            <input type="text" id="mp_nombre_mobile" name="nombre"
+                   class="form-control form-control-sm" required>
+          </div>
+
+          <div class="form-group mb-2">
+            <label for="mp_correo_mobile" class="small mb-1">Correo</label>
+            <input type="email" id="mp_correo_mobile" name="correo"
+                   class="form-control form-control-sm" required>
+          </div>
+
+          <div class="form-group mb-2">
+            <label for="mp_telefono_mobile" class="small mb-1">Teléfono</label>
+            <input type="tel" id="mp_telefono_mobile" name="telefono"
+                   class="form-control form-control-sm">
+          </div>
+
+          <div class="form-group form-check mb-3">
+            <input type="checkbox" class="form-check-input" id="mp_privacidad_mobile" required>
+            <label class="form-check-label small" for="mp_privacidad_mobile">
+              Acepto la
+              <a href="https://www.uejecutivos.cl/politicas_de_privacidad.html"
+                 target="_blank" rel="noopener">
+                Política de Privacidad
+              </a>.
+            </label>
+          </div>
+
+          <button type="submit"
+                  id="mp_submit_mobile"
+                  class="btn btn-primary btn-sm btn-block"
+                  disabled>
+            Enviar consulta
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const selectedMap = new Map(); // programId -> { name }
+
+      // Desktop
+      const listDesktop      = document.getElementById('selected-programs-list-desktop');
+      const badgeDesktop     = document.getElementById('badge-count-desktop');
+      const formDesktop      = document.getElementById('multi-program-form-desktop');
+      const hiddenDesktop    = document.getElementById('programas_seleccionados_desktop');
+      const submitDesktop    = document.getElementById('mp_submit_desktop');
+
+      // Mobile
+      const formBoxMobile    = document.getElementById('selection-form-mobile-inner');
+      const listMobile       = document.getElementById('selected-programs-list-mobile');
+      const badgeMobile      = document.getElementById('badge-count-mobile');
+      const formMobile       = document.getElementById('multi-program-form-mobile');
+      const hiddenMobile     = document.getElementById('programas_seleccionados_mobile');
+      const submitMobile     = document.getElementById('mp_submit_mobile');
+      const mobileHeader     = document.getElementById('selection-form-mobile-header');
+      const arrowIcon        = document.getElementById('selection-form-arrow');
+
+      function updateUI() {
+        const count = selectedMap.size;
+
+        // --- Lista desktop ---
+        listDesktop.innerHTML = '';
+        if (count === 0) {
+          const li = document.createElement('li');
+          li.textContent = 'Aún no seleccionas programas. Haz clic en las tarjetas de la derecha.';
+          li.classList.add('text-muted');
+          listDesktop.appendChild(li);
+        } else {
+          selectedMap.forEach((info) => {
+            const li = document.createElement('li');
+            li.textContent = info.name;
+            listDesktop.appendChild(li);
+          });
+        }
+
+        // --- Lista mobile ---
+        listMobile.innerHTML = '';
+        if (count === 0) {
+          const li = document.createElement('li');
+          li.textContent = 'Aún no seleccionas programas.';
+          li.classList.add('text-muted');
+          listMobile.appendChild(li);
+        } else {
+          selectedMap.forEach((info) => {
+            const li = document.createElement('li');
+            li.textContent = info.name;
+            listMobile.appendChild(li);
+          });
+        }
+
+        // --- Payload hidden (desktop + mobile) ---
+        const payload = Array.from(selectedMap.entries()).map(([id, info]) => {
+          return id + '::' + info.name;
+        }).join('||');
+
+        hiddenDesktop.value = payload;
+        hiddenMobile.value  = payload;
+
+        // --- Badges ---
+        badgeDesktop.textContent = count;
+        badgeMobile.textContent  = count;
+
+        // --- Habilitar / deshabilitar submit ---
+        if (submitDesktop) {
+          submitDesktop.disabled = (count === 0);
+        }
+        if (submitMobile) {
+          submitMobile.disabled = (count === 0);
+        }
+      }
+
+      // Toggle panel mobile (abrir / cerrar)
+      if (mobileHeader) {
+        mobileHeader.addEventListener('click', function () {
+          formBoxMobile.classList.toggle('open');
+          if (arrowIcon) {
+            arrowIcon.textContent = formBoxMobile.classList.contains('open') ? '▼' : '▲';
+          }
+        });
+      }
+
+      // Inicializar mensajes (0 seleccionados)
+      updateUI();
+
+      // Interacción en cada card: TODO el card es clickeable
+      document.querySelectorAll('.card-programas-nuevo.card-buscador').forEach(card => {
+        const checkbox = card.querySelector('.program-checkbox');
+        if (!checkbox) return;
+
+        let programId   = card.dataset.programId || null;
+        let programName = card.dataset.programName || '';
+
+        if (!programName) {
+          const nameEl = card.querySelector('.nombre-programa-buscador');
+          if (nameEl) programName = nameEl.innerText.trim();
+        }
+
+        // Estado visual inicial (por si en el futuro quieres marcar alguno por defecto)
+        card.classList.toggle('selected', checkbox.checked);
+
+        card.addEventListener('click', function () {
+          if (!programId) return;
+
+          // Toggle estado checkbox
+          checkbox.checked = !checkbox.checked;
+
+          if (checkbox.checked) {
+            selectedMap.set(programId, { name: programName });
+            card.classList.add('selected');
+          } else {
+            selectedMap.delete(programId);
+            card.classList.remove('selected');
+          }
+
+          updateUI();
+        });
+      });
+
+      // Submit desktop
+      formDesktop.addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        if (selectedMap.size === 0) {
+          alert('Por favor selecciona al menos un programa antes de enviar la consulta.');
+          return;
+        }
+
+        if (!formDesktop.reportValidity()) {
+          return;
+        }
+
+        alert(
+          'Formulario válido (desktop - demo).\n\nProgramas seleccionados:\n' +
+          hiddenDesktop.value
+        );
+        // En producción: formDesktop.submit();
+      });
+
+      // Submit mobile
+      formMobile.addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        if (selectedMap.size === 0) {
+          alert('Por favor selecciona al menos un programa antes de enviar la consulta.');
+          return;
+        }
+
+        if (!formMobile.reportValidity()) {
+          return;
+        }
+
+        alert(
+          'Formulario válido (mobile - demo).\n\nProgramas seleccionados:\n' +
+          hiddenMobile.value
+        );
+        // En producción: formMobile.submit();
+      });
+    });
+  </script>
+</body>
+</html>
